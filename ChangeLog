@@ -1,2 +1,5 @@
-
-
+0.05:
+	- Added support for EV_SW. Prefix a key code with "sw:" to refer to a switch code.
+	- Add two configuration options: exec_0, exec_1 to execute shell command for key/switch values 0 and 1 respectively
+	- Add two configuration options: exec_suspend, exec_resume to execute shell commands for suspend/resume
+	- During resume, restore the old backligh value instead if reseting it to a hardcoded value

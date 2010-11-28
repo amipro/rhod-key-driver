@@ -3,7 +3,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+	 * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -24,6 +24,8 @@
 #include <string.h>
 #include <dirent.h>
 #include <stdio.h>
+#include <sys/time.h>
+#include <time.h>
 
 #include "utils.h"
 
@@ -101,11 +103,12 @@ void clear_evdev(){
 		close(evdev_fd_list[evdev_count]);
 }
 
-int send_key_uinput(int code, int value){
+int send_key_uinput(int code, int value, int type){
 	struct input_event event;
-	
+
+	debug("send_key_uinput: code=%d, value=%d, type=%d\n", code, value, type);
 	gettimeofday(&event.time, NULL);
-	event.type = EV_KEY;
+	event.type = type;
 	event.code = code;
 	event.value = value;
 
@@ -113,14 +116,14 @@ int send_key_uinput(int code, int value){
 		error("Error send key: %s\n", strerror(errno));
 		return -1;
 	}
-        event.type = EV_SYN;
-        event.code = 0;
-        event.value = 0;
+	event.type = EV_SYN;
+	event.code = 0;
+	event.value = 0;
 
-        if(write(uinput_fd, &event, sizeof(event))<0){
-                error("Error send SYN\n");
-                return -1;
-        }
+	if(write(uinput_fd, &event, sizeof(event))<0){
+		error("Error send SYN\n");
+		return -1;
+	}
 
 	return 0;
 }
@@ -146,24 +149,30 @@ int setup_uinput(void){
 	{
 		goto error;
 	}
-        if (ioctl(uinput_fd, UI_SET_EVBIT, EV_SYN))
-        {
-                goto error;
-        }
+	if (ioctl(uinput_fd, UI_SET_EVBIT, EV_SYN))
+	{
+		goto error;
+	}
+	if (ioctl(uinput_fd, UI_SET_EVBIT, EV_SW))
+	{
+		goto error;
+	}
 
 	int i;
 	for(i = 1; i<0x100; i++)
 		ioctl(uinput_fd, UI_SET_KEYBIT, i);
+	for(i = 0; i<SW_CNT; i++)
+		ioctl(uinput_fd, UI_SET_SWBIT, i);
 
 	if (ioctl(uinput_fd, UI_DEV_CREATE))
 	{
-		     goto error;
+		goto error;
 	}
-	
+
 	return 0;
-error:
-	error("Initialization error of uinput: %s\n", strerror(errno));
-	return -1;
+	error:
+		error("Initialization error of uinput: %s\n", strerror(errno));
+		return -1;
 }
 
 void clear_uinput(void){
@@ -196,7 +205,11 @@ void input_loop(void (processor)(int type, int code, int value)){
 	int maxfd=0;
 	struct input_event e;
 	fd_set read_fds;
-	
+	struct timeval tval;
+	time_t t;
+
+	t=-1;
+
 	while(1){
 		FD_ZERO(&read_fds);
 
@@ -205,16 +218,25 @@ void input_loop(void (processor)(int type, int code, int value)){
 			maxfd = MAX(evdev_fd_list[i], maxfd);
 		}
 
-		if(select(maxfd+1,&read_fds,NULL,NULL,NULL)==0)
-			continue;
+		tval.tv_sec=3;
+		tval.tv_usec=0;
+		if(select(maxfd+1,&read_fds,NULL,NULL,&tval)==-1){
+			error("input_loop: select faild: %s\n", strerror(errno));
+			break;
+		}
 
 		for(i=0;i<evdev_count;i++){
 			if(FD_ISSET(evdev_fd_list[i], &read_fds)){
 				if(read(evdev_fd_list[i], &e, sizeof(e))==sizeof(e)){
 					debug("Input event received type=%d code=%d value=%d\n",e.type,e.code,e.value);
+					time(&t);		// time of last action
 					processor(e.type,e.code,e.value);
 				}
 			}
+		}
+		if(t!=-1 && time(NULL)-t>=3){
+			reset_keys();
+			t=-1;
 		}
 	}
 }

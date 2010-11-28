@@ -16,7 +16,7 @@
  
 #define ARRAY_SIZE(x)   (sizeof(x)/sizeof(x[0]))
 #define MAX(x,y)	(x>y?x:y)
-#define TEST_BIT(x,addr) (1UL & (addr[x/8] >> (x & 0xff)))
+#define TEST_BIT(x,addr) (1UL & (addr[x/8] >> (x % 8)))
 
 // configuration file data
 extern char *conf_file;

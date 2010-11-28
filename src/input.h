@@ -17,5 +17,5 @@
 int setup_input();
 void clear_input();
 void input_loop(void (processor)(int type, int code, int value));
-int send_key_uinput(int code, int value);
+int send_key_uinput(int code, int value, int type);
 

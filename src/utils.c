@@ -29,6 +29,10 @@ int conf_key_set_code(char *key_code, char *cmd, char *arg);
 int conf_key_set_power_key(char *key_code, char *cmd, char *arg);
 int conf_key_set_fn_code(char *key_code, char *cmd, char *arg);
 int conf_key_set_fn_key(char *key_code, char *cmd, char *arg);
+int conf_key_exec_0(char *key_code, char *cmd, char *arg);
+int conf_key_exec_1(char *key_code, char *cmd, char *arg);
+int conf_key_exec_suspend(char *key_code, char *cmd, char *arg);
+int conf_key_exec_resume(char *key_code, char *cmd, char *arg);
 
 int debug_level=0;
 void set_debug(int level){
@@ -78,7 +82,11 @@ struct conf_options{
 	{"code", (t_config_callback)conf_key_set_code},
 	{"fncode", (t_config_callback)conf_key_set_fn_code},
 	{"fnkey", (t_config_callback)conf_key_set_fn_key },
-	{"suspend", (t_config_callback)conf_key_set_power_key}
+	{"suspend", (t_config_callback)conf_key_set_power_key},
+	{"exec_0", (t_config_callback)conf_key_exec_0},
+	{"exec_1", (t_config_callback)conf_key_exec_1},
+	{"exec_suspend", (t_config_callback)conf_key_exec_suspend},
+	{"exec_resume", (t_config_callback)conf_key_exec_resume}
 };
 
 char conf_label[256];	// current key section name
@@ -128,7 +136,13 @@ int load_configuration(char *path){
 		// get argument
 		if(*s!='#'){
 			arg=s;
-			while(*s && !isspace(*s))s++;
+			if(*s=='"'){
+				s++;
+				arg++;
+				while(*s && *s!='"')s++;
+			}else{
+				while(*s && !isspace(*s))s++;
+			}
 			if(*s){
 				*s=0;
 				s++;

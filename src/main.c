@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <config.h>
 #include "suspend.h"
 #include "input.h"
 #include "key_processor.h"
@@ -33,7 +34,12 @@ int main(int argc,char **argv)
 		switch (c){
 			case '?':
 			case 'h':
-				error("Keyboard Manager for Rhodium\n%s [hv] [c <configuration file>]\nh\tDisplay this help\nv\tEnable debug\nc\tconfiguration file path\n");
+				error(PACKAGE_STRING ": Keyboard Manager for Rhodium\n"
+				      "Usage: %s [hv] [c <configuration file>]\n"
+				      "h\tDisplay this help\n"
+				      "v\tEnable debug\n"
+				      "c\tconfiguration file path\n"
+				      "\nHome page: http://github.com/amipro/rhod-key-driver\n", argv[0]);
 				return 0;
 			case 'v':
 				set_debug(1);
